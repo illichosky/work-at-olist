@@ -4,7 +4,11 @@ import tempfile
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
+from django.urls import reverse
 
+from rest_framework.test import APIClient, APITestCase
+
+from books.factories import AuthorFactory
 from books.models import Author
 
 
@@ -57,3 +61,29 @@ class ImportAuthorsTest(TestCase):
 
         self.assertEqual(len(self.authors.filter(name="J.K Rowling")), 1)
         self.assertEqual(len(self.authors), 2)
+
+
+class AuthorViewsTest(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.author_name = 'J.D Salinger'
+        self.author = AuthorFactory(name=self.author_name)
+
+    def test_list_authors(self):
+        response = self.client.get(reverse('authors-list'))
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+
+        self.assertIn('next', response_data)
+        results = response_data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['id'], 1)
+        self.assertEqual(results[0]['name'], self.author_name)
+
+    def test_get_author(self):
+        response = self.client.get(reverse('authors-detail', kwargs={'name': self.author_name}))
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_author_not_exist(self):
+        response = self.client.get(reverse('authors-detail', kwargs={'name': 'Zé Ninguém'}))
+        self.assertEqual(response.status_code, 404)
