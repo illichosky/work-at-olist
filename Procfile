@@ -1,2 +1,2 @@
-release: python --chdir workatolist manage.py migrate
+release: python workatolist/manage.py migrate
 web: gunicorn --chdir workatolist workatolist.wsgi
