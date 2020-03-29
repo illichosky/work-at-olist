@@ -10,10 +10,31 @@ services:
       POSTGRES_USER: olisteradmin
       POSTGRES_PASSWORD: olist
 
-  workatolist:
+  workatolist-runserver:
     build: .
-    restart: on-failure
-    command: python src/manage.py runserver 0.0.0.0:8000
+    command: bash -c "cd workatolist && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/workatolist
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  workatolist-test:
+    build: .
+    command: bash -c "cd workatolist && python manage.py migrate && python manage.py test"
+    volumes:
+      - .:/workatolist
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  workatolist-bash:
+    build: .
+    command: bash -c "cd workatolist && python manage.py migrate && /bin/bash"
+    volumes:
+      - .:/workatolist
     ports:
       - "8000:8000"
     depends_on:
