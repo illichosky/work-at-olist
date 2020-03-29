@@ -22,12 +22,18 @@ class BookSerializer(serializers.ModelSerializer):
     def validate_authors(self, value):
         if not value:
             raise serializers.ValidationError({'detail': 'At least one author is required'})
+
+        for author in value:
+            try:
+                Author.objects.get(id=author['id'])
+            except Author.DoesNotExist:
+                raise serializers.ValidationError({'detail': 'Author does not exists'})
         return value
 
     def create(self, validate_data):
         authors = validate_data.pop('authors')
         instance = Book.objects.create(**validate_data)
-        instance = self._append_author_objects(authors, instance, create=True)
+        instance = self._append_author_objects(authors, instance)
         return instance
 
     def update(self, instance, validated_data):
@@ -44,15 +50,9 @@ class BookSerializer(serializers.ModelSerializer):
         return instance
 
     @staticmethod
-    def _append_author_objects(authors, instance, create=False):
+    def _append_author_objects(authors, instance):
         """Iterates over the authors list, find the Author object from that id and append to the Book obj"""
         for author in authors:
-            try:
-                author_object = Author.objects.get(id=author['id'])
-                instance.authors.add(author_object)
-            except Author.DoesNotExist:
-                if create:
-                    instance.delete()
-                raise serializers.ValidationError({'authors': {'detail': 'Author does not exists'}})
-
+            author_object = Author.objects.get(id=author['id'])
+            instance.authors.add(author_object)
         return instance
