@@ -3,6 +3,9 @@ from django.urls import path, include
 
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
+from rest_framework import routers
+
+from books import views
 
 
 schema_view = get_schema_view(
@@ -13,7 +16,11 @@ schema_view = get_schema_view(
    public=True
 )
 
+router = routers.DefaultRouter()
+router.register(r'authors', views.AuthorViewSet, basename='authors')
+router.register(r'books', views.BookViewSet, basename='books')
+
 urlpatterns = [
-    path('', include('books.urls')),
+    path('', include(router.urls)),
     url('docs/', schema_view.with_ui('swagger'))
 ]
