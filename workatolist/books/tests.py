@@ -77,7 +77,7 @@ class AuthorViewsTest(APITestCase):
         self.assertIn('next', response_data)
         results = response_data['results']
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]['id'], 1)
+        self.assertEqual(results[0]['id'], 3)
         self.assertEqual(results[0]['name'], self.author.name)
 
     def test_get_author(self):
@@ -170,22 +170,11 @@ class BookViewsTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
 
-        expected_response = {
-             'count': 2,
-             'next': None,
-             'previous': None,
-             'results': [{'authors': [{'id': 13, 'name': 'J.D Salinger'}],
-                          'edition': 1,
-                          'id': 16,
-                          'name': 'The Catcher in the Rye',
-                          'publication_year': 2020},
-                         {'authors': [{'id': 13, 'name': 'J.D Salinger'}],
-                          'edition': 2,
-                          'id': 17,
-                          'name': 'The Catcher in the Rye',
-                          'publication_year': 2020}]}
-
-        self.assertEqual(response_data, expected_response)
+        self.assertEqual(len(response_data['results']), 2)
+        self.assertEqual(response_data['results'][0]['edition'], 1)
+        self.assertEqual(response_data['results'][0]['name'], 'The Catcher in the Rye')
+        self.assertEqual(response_data['results'][1]['edition'], 2)
+        self.assertEqual(response_data['results'][0]['name'], 'The Catcher in the Rye')
 
     def test_filtered_list_books(self):
         books = Book.objects.all()
@@ -242,6 +231,20 @@ class BookViewsTest(APITestCase):
         self.assertEqual(len(response_data['authors']), 1)
         self.assertEqual(response_data['authors'][0]['name'], self.second_author.name)
 
+    def test_update_book_non_existent_author(self):
+        payload = {
+            'name': 'The Book that Never Existed',
+            'authors': [{'id': 9999}],
+            'edition': 2,
+            'publication_year': 1951
+        }
+        book_to_update = Book.objects.last()
+        response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
+        self.assertEqual(response.status_code, 400)
+
+        new_book = Book.objects.last()
+        self.assertEqual(book_to_update, new_book)
+
     def test_update_book_no_author(self):
         payload = {
             'name': 'The Book that Never Existed',
@@ -251,6 +254,8 @@ class BookViewsTest(APITestCase):
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, 400)
+        new_book = Book.objects.last()
+        self.assertEqual(book_to_update, new_book)
 
     def test_partial_update_wrong_verb(self):
         payload = {
