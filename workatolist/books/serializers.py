@@ -26,12 +26,14 @@ class BookSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('authors', instance.name)
+        instance.name = validated_data.get('name', instance.name)
         instance.edition = validated_data.get('edition', instance.edition)
         instance.publication_year = validated_data.get('publication_year', instance.publication_year)
 
         authors = validated_data.get('authors', [])
-        instance = self._append_author_objects(authors, instance)
+        if authors:
+            instance.authors.clear()
+            instance = self._append_author_objects(authors, instance)
 
         instance.save()
         return instance
