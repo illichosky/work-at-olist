@@ -78,10 +78,17 @@ WSGI_APPLICATION = 'workatolist.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+# Local database data, Heroku DB config is taken care by django_heroku.
+# If you decide to run it without docker, you might have to change the database settings to match with the ones in your
+# local machine
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'workatolist',
+        'USER': 'olisteradmin',
+        'PASSWORD': 'olist',
+        'HOST': 'db',
+        'PORT': 5432
     }
 }
 
@@ -129,4 +136,5 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+# This takes care of the Heroku settings
 django_heroku.settings(locals())
