@@ -51,11 +51,11 @@ authors in the DB.
 The `/books` endpoint is more flexible one, you can add new books, delete or update existing ones, and also get
 the full list, or a filtered version of it. 
 
-We have [Swagger Docs available here](https://work-at-olist-pellissari.herokuapp.com/docs/) at your disposal. 
+We have [Swagger Docs available here](https://work-at-olist-testing.herokuapp.com/docs/) at your disposal. 
 Swagger Docs also allows you to make API calls directly from it, so testing the functionality should be easy :)
 ## Live demo
 If you wish to test it without having to clone and run it on your local machine, we have the API deployed
-on Heroku for testing purposes:  https://work-at-olist-pellissari.herokuapp.com/
+on Heroku for testing purposes:  https://work-at-olist-testing.herokuapp.com/
 
 # How this was build
 This was developed using a Windows 10 Home machine. All the code was written using PyCharm Community 
