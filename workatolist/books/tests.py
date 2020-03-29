@@ -8,8 +8,8 @@ from django.urls import reverse
 
 from rest_framework.test import APIClient, APITestCase
 
-from books.factories import AuthorFactory
-from books.models import Author
+from books.factories import AuthorFactory, BookFactory
+from books.models import Author, Book
 
 
 class ImportAuthorsTest(TestCase):
@@ -66,8 +66,7 @@ class ImportAuthorsTest(TestCase):
 class AuthorViewsTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.author_name = 'J.D Salinger'
-        self.author = AuthorFactory(name=self.author_name)
+        self.author = AuthorFactory(name='J.D Salinger')
 
     def test_list_authors(self):
         response = self.client.get(reverse('authors-list'))
@@ -78,12 +77,197 @@ class AuthorViewsTest(APITestCase):
         results = response_data['results']
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['id'], 1)
-        self.assertEqual(results[0]['name'], self.author_name)
+        self.assertEqual(results[0]['name'], self.author.name)
 
     def test_get_author(self):
-        response = self.client.get(reverse('authors-detail', kwargs={'name': self.author_name}))
+        response = self.client.get(reverse('authors-detail', kwargs={'name': self.author.name}))
         self.assertEqual(response.status_code, 200)
 
     def test_get_author_not_exist(self):
         response = self.client.get(reverse('authors-detail', kwargs={'name': 'Zé Ninguém'}))
         self.assertEqual(response.status_code, 404)
+
+
+class BookViewsTest(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.author = AuthorFactory(name='J.D Salinger')
+        self.second_author = AuthorFactory(name='Hugo Pellissari')
+        self.book_name = 'The Catcher in the Rye'
+
+    def test_create_book(self):
+        payload = {
+            'name': self.book_name,
+            'authors': [{'id': self.author.id}],
+            'edition': 1,
+            'publication_year': 1951
+        }
+        response = self.client.post(reverse('books-list'), payload, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        expected_response = {
+            'id': 1,
+            'authors': [{'id': self.author.id, 'name': self.author.name}],
+            'name': 'The Catcher in the Rye',
+            'edition': 1,
+            'publication_year': 1951}
+        self.assertEqual(response.json(), expected_response)
+
+        books = Book.objects.all()
+        self.assertEqual(len(books), 1)
+        self.assertEqual(books[0].name, 'The Catcher in the Rye')
+
+    def test_create_book_non_existent_author(self):
+        payload = {
+            'name': self.book_name,
+            'authors': [{'id': 123}],
+            'edition': 1,
+            'publication_year': 1951
+        }
+        response = self.client.post(reverse('books-list'), payload, format='json')
+        self.assertEqual(response.json(), {'detail': 'Author does not exists'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_book_two_authors(self):
+        payload = {
+            'name': 'The Book that Never Existed',
+            'authors': [{'id': self.author.id}, {'id': self.second_author.id}],
+            'edition': 1,
+            'publication_year': 1951
+        }
+        response = self.client.post(reverse('books-list'), payload, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        response_data = response.json()
+        book_authors = response_data['authors']
+
+        books = Book.objects.all()
+        self.assertEqual(len(books), 1)
+
+    def test_create_book_incomplete_data(self):
+        payload = {
+            'name': self.book_name,
+            'authors': [self.author.id],
+            'edition': 1,
+        }
+        response = self.client.post(reverse('books-list'), payload)
+        self.assertEqual(response.status_code, 400)
+
+        payload = {
+            'name': self.book_name,
+            'edition': 1,
+        }
+        response = self.client.post(reverse('books-list'), payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_list_books(self):
+        BookFactory(authors=[self.author], name=self.book_name)
+
+        response = self.client.get(reverse('books-list'))
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+
+        self.assertIn('next', response_data)
+        results = response_data['results']
+        self.assertEqual(len(results), 1)
+        expected_result = [{
+            'id': 1,
+            'authors': [{'id': 1, 'name': 'J.D Salinger'}],
+            'name': 'The Catcher in the Rye',
+            'edition': 1,
+            'publication_year': 2020}]
+        self.assertEqual(results, expected_result)
+
+    def test_filtered_list_books(self):
+        BookFactory(authors=[self.author], name=self.book_name)
+        BookFactory(authors=[self.author], name=self.book_name, edition=2)
+
+        books = Book.objects.all()
+        self.assertEqual(len(books), 2)
+
+        query = {'author': [self.author]}
+
+        response = self.client.get(reverse('books-list'), data=query)
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        results = response_data['results']
+        self.assertEqual(len(results), 2)
+
+        # do another call, but now filtering by edition
+        query['edition'] = 2
+        response = self.client.get(reverse('books-list'), data=query)
+        response_data = response.json()
+        results = response_data['results']
+        self.assertEqual(len(results), 1)
+
+        # try filtering with bad param, we should ignore it
+        query['bad_param'] = 2
+        response = self.client.get(reverse('books-list'), data=query)
+        response_data = response.json()
+        results = response_data['results']
+        self.assertEqual(len(results), 1)
+
+    def test_update_book(self):
+        BookFactory(authors=[self.author], name=self.book_name)
+        payload = {
+            'name': 'The Book that Never Existed',
+            'authors': [{'id': self.author.id}],
+            'edition': 2,
+            'publication_year': 1951
+        }
+        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        book = Book.objects.last()
+        self.assertEqual(book.edition, 2)
+
+        # test update author
+        payload = {
+            'name': 'The Book that Never Existed',
+            'authors': [{'id': self.second_author.id}],
+            'edition': 2,
+            'publication_year': 1951
+        }
+        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+
+        self.assertEqual(len(response_data['authors']), 1)
+        self.assertEqual(response_data['authors'][0]['name'], self.second_author.name)
+
+        # test update without id
+        payload = {
+            'name': 'The Book that Never Existed',
+            'edition': 2,
+            'publication_year': 1951
+        }
+        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        self.assertEqual(response.status_code, 400)
+
+        # test misplaced partial update
+        payload = {
+            'name': 'The Book that Never Existed',
+            'authors': [{'id': self.second_author.id}],
+            'publication_year': 1951
+        }
+        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_partial_update(self):
+        BookFactory(authors=[self.author], name=self.book_name)
+        payload = {
+            'name': 'The Book that Never Existed',
+            'authors': [{'id': self.second_author.id}],
+            'publication_year': 1951
+        }
+        response = self.client.patch(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_delete_book(self):
+        BookFactory(authors=[self.author], name=self.book_name)
+        BookFactory(authors=[self.author], name='Another Book - The New Era')
+
+        response = self.client.delete(reverse('books-detail', kwargs={'pk': 1}))
+        self.assertEqual(response.status_code, 204)
+        books = Book.objects.all()
+        self.assertEqual(len(books), 1)
