@@ -1,1 +1,1 @@
-web: gunicorn workatolist.wsgi
+web: gunicorn --chdir workatolist workatolist.wsgi
