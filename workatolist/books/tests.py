@@ -94,14 +94,13 @@ class BookViewsTest(APITestCase):
         self.client = APIClient()
         self.author = AuthorFactory(name='J.D Salinger')
         self.second_author = AuthorFactory(name='Hugo Pellissari')
-        self.book_name = 'The Catcher in the Rye'
 
-        BookFactory(authors=[self.author], name=self.book_name)
-        BookFactory(authors=[self.author], name=self.book_name, edition=2)
+        BookFactory(authors=[self.author], name='The Catcher in the Rye')
+        BookFactory(authors=[self.author], name='The Catcher in the Rye', edition=2)
 
     def test_create_book(self):
         payload = {
-            'name': self.book_name,
+            'name': 'The Catcher in the Rye',
             'authors': [{'id': self.author.id}],
             'edition': 1,
             'publication_year': 1951
@@ -123,7 +122,7 @@ class BookViewsTest(APITestCase):
 
     def test_create_book_non_existent_author(self):
         payload = {
-            'name': self.book_name,
+            'name': 'The Book That Should Never Be Written',
             'authors': [{'id': 123}],
             'edition': 1,
             'publication_year': 1951
@@ -131,6 +130,7 @@ class BookViewsTest(APITestCase):
         response = self.client.post(reverse('books-list'), payload, format='json')
         self.assertEqual(response.json(), {'detail': 'Author does not exists'})
         self.assertEqual(response.status_code, 400)
+        self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
     def test_create_book_two_authors(self):
         payload = {
@@ -149,19 +149,21 @@ class BookViewsTest(APITestCase):
 
     def test_create_book_incomplete_data(self):
         payload = {
-            'name': self.book_name,
+            'name': 'The Book That Should Never Be Written',
             'authors': [self.author.id],
             'edition': 1,
         }
         response = self.client.post(reverse('books-list'), payload)
         self.assertEqual(response.status_code, 400)
+        self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
         payload = {
-            'name': self.book_name,
+            'name': 'The Book That Should Never Be Written',
             'edition': 1,
         }
         response = self.client.post(reverse('books-list'), payload)
         self.assertEqual(response.status_code, 400)
+        self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
     def test_list_books(self):
         response = self.client.get(reverse('books-list'))
@@ -169,19 +171,19 @@ class BookViewsTest(APITestCase):
         response_data = response.json()
 
         expected_response = {
-            'count': 2,
-            'next': None,
-            'previous': None,
-            'results': [{'authors': [{'id': 1, 'name': 'J.D Salinger'}],
-                         'edition': 1,
-                         'id': 1,
-                         'name': 'The Catcher in the Rye',
-                         'publication_year': 2020},
-                        {'authors': [{'id': 1, 'name': 'J.D Salinger'}],
-                         'edition': 2,
-                         'id': 2,
-                         'name': 'The Catcher in the Rye',
-                         'publication_year': 2020}]}
+             'count': 2,
+             'next': None,
+             'previous': None,
+             'results': [{'authors': [{'id': 13, 'name': 'J.D Salinger'}],
+                          'edition': 1,
+                          'id': 16,
+                          'name': 'The Catcher in the Rye',
+                          'publication_year': 2020},
+                         {'authors': [{'id': 13, 'name': 'J.D Salinger'}],
+                          'edition': 2,
+                          'id': 17,
+                          'name': 'The Catcher in the Rye',
+                          'publication_year': 2020}]}
 
         self.assertEqual(response_data, expected_response)
 
@@ -218,7 +220,8 @@ class BookViewsTest(APITestCase):
             'edition': 2,
             'publication_year': 1951
         }
-        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        book_to_update = Book.objects.last()
+        response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
@@ -231,7 +234,8 @@ class BookViewsTest(APITestCase):
             'edition': 2,
             'publication_year': 1951
         }
-        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        book_to_update = Book.objects.last()
+        response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
 
@@ -244,7 +248,8 @@ class BookViewsTest(APITestCase):
             'edition': 2,
             'publication_year': 1951
         }
-        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        book_to_update = Book.objects.last()
+        response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, 400)
 
     def test_partial_update_wrong_verb(self):
@@ -253,7 +258,8 @@ class BookViewsTest(APITestCase):
             'authors': [{'id': self.second_author.id}],
             'publication_year': 1951
         }
-        response = self.client.put(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        book_to_update = Book.objects.last()
+        response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, 400)
 
     def test_partial_update(self):
@@ -262,11 +268,13 @@ class BookViewsTest(APITestCase):
             'authors': [{'id': self.second_author.id}],
             'publication_year': 1951
         }
-        response = self.client.patch(reverse('books-detail', kwargs={'pk': 1}), payload, format='json')
+        book_to_update = Book.objects.last()
+        response = self.client.patch(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, 200)
 
     def test_delete_book(self):
         initial_book_quantity = len(Book.objects.all())
-        response = self.client.delete(reverse('books-detail', kwargs={'pk': 1}))
+        book_to_delete = Book.objects.last()
+        response = self.client.delete(reverse('books-detail', kwargs={'pk': book_to_delete.id}))
         self.assertEqual(response.status_code, 204)
         self.assertEqual(len(Book.objects.all()), initial_book_quantity-1)
