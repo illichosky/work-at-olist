@@ -19,7 +19,8 @@ class ImportAuthorsTest(TestCase):
         self.command = 'importauthors'
         self.authors = Author.objects.all()
 
-    def _mock_csv_file(self, authors_list):
+    @staticmethod
+    def _mock_csv_file(authors_list):
         """Receives a list of entries for the author csv file and returns the filename"""
         file = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
