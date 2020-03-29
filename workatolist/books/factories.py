@@ -18,9 +18,8 @@ class BookFactory(factory.DjangoModelFactory):
 
     @factory.post_generation
     def authors(self, create, extracted, **kwargs):
-        if not create:
+        if not extracted or not create:
             return
 
-        if extracted:
-            for author in extracted:
-                self.authors.add(author)
+        for author in extracted:
+            self.authors.add(author)
