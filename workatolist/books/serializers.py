@@ -22,7 +22,7 @@ class BookSerializer(serializers.ModelSerializer):
     def create(self, validate_data):
         authors = validate_data.pop('authors')
         instance = Book.objects.create(**validate_data)
-        instance = self._append_author_objects(authors, instance)
+        instance = self._append_author_objects(authors, instance, create=True)
         return instance
 
     def update(self, instance, validated_data):
@@ -39,12 +39,14 @@ class BookSerializer(serializers.ModelSerializer):
         return instance
 
     @staticmethod
-    def _append_author_objects(authors, instance):
+    def _append_author_objects(authors, instance, create=False):
         for author in authors:
             try:
                 author_object = Author.objects.get(id=author['id'])
                 instance.authors.add(author_object)
             except Author.DoesNotExist:
+                if create:
+                    instance.delete()
                 raise serializers.ValidationError({'detail': 'Author does not exists'})
 
         return instance
