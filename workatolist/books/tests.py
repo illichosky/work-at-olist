@@ -128,7 +128,19 @@ class BookViewsTest(APITestCase):
             'publication_year': 1951
         }
         response = self.client.post(reverse('books-list'), payload, format='json')
-        self.assertEqual(response.json(), {'detail': 'Author does not exists'})
+        self.assertEqual(response.json()['authors'], {'detail': 'Author does not exists'})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
+
+    def test_create_book_no_author(self):
+        payload = {
+            'name': 'The Book That Should Never Be Written',
+            'authors': [],
+            'edition': 1,
+            'publication_year': 1951
+        }
+        response = self.client.post(reverse('books-list'), payload, format='json')
+        self.assertEqual(response.json()['authors'], {'detail': 'At least one author is required'})
         self.assertEqual(response.status_code, 400)
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 

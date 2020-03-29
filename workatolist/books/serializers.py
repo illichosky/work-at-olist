@@ -4,7 +4,7 @@ from books.models import Author, Book
 
 
 class AuthorSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField()
+    id = serializers.IntegerField(required=True)
     name = serializers.CharField(read_only=True)
 
     class Meta:
@@ -18,6 +18,11 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = '__all__'
+
+    def validate_authors(self, value):
+        if not value:
+            raise serializers.ValidationError({'detail': 'At least one author is required'})
+        return value
 
     def create(self, validate_data):
         authors = validate_data.pop('authors')
@@ -48,6 +53,6 @@ class BookSerializer(serializers.ModelSerializer):
             except Author.DoesNotExist:
                 if create:
                     instance.delete()
-                raise serializers.ValidationError({'detail': 'Author does not exists'})
+                raise serializers.ValidationError({'authors': {'detail': 'Author does not exists'}})
 
         return instance
