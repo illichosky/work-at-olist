@@ -40,6 +40,7 @@ class BookSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _append_author_objects(authors, instance, create=False):
+        """Iterates over the authors list, find the Author object from that id and append to the Book obj"""
         for author in authors:
             try:
                 author_object = Author.objects.get(id=author['id'])
