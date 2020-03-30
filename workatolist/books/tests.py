@@ -6,6 +6,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 
+from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from books.factories import AuthorFactory, BookFactory
@@ -71,7 +72,7 @@ class AuthorViewsTest(APITestCase):
 
     def test_list_authors(self):
         response = self.client.get(reverse('authors-list'))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
 
         self.assertIn('next', response_data)
@@ -82,11 +83,11 @@ class AuthorViewsTest(APITestCase):
 
     def test_get_author(self):
         response = self.client.get(reverse('authors-detail', kwargs={'name': self.author.name}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_get_author_not_exist(self):
         response = self.client.get(reverse('authors-detail', kwargs={'name': 'Zé Ninguém'}))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class BookViewsTest(APITestCase):
@@ -106,7 +107,7 @@ class BookViewsTest(APITestCase):
             'publication_year': 1951
         }
         response = self.client.post(reverse('books-list'), payload, format='json')
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         expected_response = {
             'id': 3,
@@ -129,7 +130,7 @@ class BookViewsTest(APITestCase):
         }
         response = self.client.post(reverse('books-list'), payload, format='json')
         self.assertEqual(response.json()['authors'], {'detail': 'Author does not exists'})
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
     def test_create_book_no_author(self):
@@ -141,7 +142,7 @@ class BookViewsTest(APITestCase):
         }
         response = self.client.post(reverse('books-list'), payload, format='json')
         self.assertEqual(response.json()['authors'], {'detail': 'At least one author is required'})
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
     def test_create_book_two_authors(self):
@@ -152,7 +153,7 @@ class BookViewsTest(APITestCase):
             'publication_year': 1951
         }
         response = self.client.post(reverse('books-list'), payload, format='json')
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         response_data = response.json()
         book_authors = response_data['authors']
@@ -166,7 +167,7 @@ class BookViewsTest(APITestCase):
             'edition': 1,
         }
         response = self.client.post(reverse('books-list'), payload)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
         payload = {
@@ -174,12 +175,12 @@ class BookViewsTest(APITestCase):
             'edition': 1,
         }
         response = self.client.post(reverse('books-list'), payload)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
     def test_list_books(self):
         response = self.client.get(reverse('books-list'))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
 
         self.assertEqual(len(response_data['results']), 2)
@@ -194,7 +195,7 @@ class BookViewsTest(APITestCase):
 
         query = {'author': [self.author]}
         response = self.client.get(reverse('books-list'), data=query)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         response_data = response.json()
         results = response_data['results']
@@ -223,7 +224,7 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         response_data = response.json()
         self.assertEqual(response_data['edition'], 2)
@@ -237,7 +238,7 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
 
         self.assertEqual(len(response_data['authors']), 1)
@@ -252,7 +253,7 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         new_book = Book.objects.last()
         self.assertEqual(book_to_update, new_book)
@@ -265,7 +266,7 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         new_book = Book.objects.last()
         self.assertEqual(book_to_update, new_book)
 
@@ -277,7 +278,7 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_partial_update(self):
         payload = {
@@ -287,11 +288,11 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.patch(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_delete_book(self):
         initial_book_quantity = len(Book.objects.all())
         book_to_delete = Book.objects.last()
         response = self.client.delete(reverse('books-detail', kwargs={'pk': book_to_delete.id}))
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(len(Book.objects.all()), initial_book_quantity-1)
