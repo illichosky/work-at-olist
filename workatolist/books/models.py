@@ -3,7 +3,7 @@ from django.db import models
 
 class Author(models.Model):
     """Model representing book authors"""
-    name = models.CharField(max_length=200, help_text="Author name")
+    name = models.CharField(max_length=200, help_text="Author name", db_index=True)
 
 
 class Book(models.Model):
