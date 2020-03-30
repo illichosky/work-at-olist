@@ -12,7 +12,9 @@ If you wish to use it without docker, here is what you have to do in order to in
 - (Optional) Setup a new virtualenv using `virtualenv <env-name>`
 - Install the requirements `pip install -r requirements.txt`
 - Install PostgreSQL
-- Set up your DB config at settings.DATABASE 
+- Set up a `.env` file with relating to some Django settings and DB information. I created a sample file `.env.sample`, 
+to serve as a template. To make usage easier, if using docker, you may find the default DB credentials in the
+`docker-compose.yml` file 
 
 If you decide to use Docker:
 - Install Docker
