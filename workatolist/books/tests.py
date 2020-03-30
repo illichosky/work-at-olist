@@ -163,18 +163,21 @@ class BookViewsTest(APITestCase):
     def test_create_book_incomplete_data(self):
         payload = {
             'name': 'The Book That Should Never Be Written',
-            'authors': [self.author.id],
+            'authors': [{'id': self.author.id}],
             'edition': 1,
         }
-        response = self.client.post(reverse('books-list'), payload)
+        response = self.client.post(reverse('books-list'), payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'publication_year': ['This field is required.']})
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
         payload = {
             'name': 'The Book That Should Never Be Written',
             'edition': 1,
         }
-        response = self.client.post(reverse('books-list'), payload)
+        response = self.client.post(reverse('books-list'), payload, format='json')
+        self.assertEqual(
+            response.json(), {'authors': ['This field is required.'], 'publication_year': ['This field is required.']})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Book.objects.filter(name='The Book That Should Never Be Written').exists())
 
@@ -253,6 +256,7 @@ class BookViewsTest(APITestCase):
         }
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
+        self.assertEqual(response.json(), {'authors': {'detail': 'Author does not exists'}})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         new_book = Book.objects.last()
@@ -267,6 +271,7 @@ class BookViewsTest(APITestCase):
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'authors': ['This field is required.']})
         new_book = Book.objects.last()
         self.assertEqual(book_to_update, new_book)
 
@@ -279,6 +284,7 @@ class BookViewsTest(APITestCase):
         book_to_update = Book.objects.last()
         response = self.client.put(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'edition': ['This field is required.']})
 
     def test_partial_update(self):
         payload = {
@@ -287,8 +293,13 @@ class BookViewsTest(APITestCase):
             'publication_year': 1951
         }
         book_to_update = Book.objects.last()
+        self.assertEqual(book_to_update.authors.all()[0].name, 'J.D Salinger')
+        self.assertEqual(book_to_update.name, 'The Catcher in the Rye')
         response = self.client.patch(reverse('books-detail', kwargs={'pk': book_to_update.id}), payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        updated_book = Book.objects.last()
+        self.assertEqual(updated_book.authors.all()[0].name, 'Hugo Pellissari')
+        self.assertEqual(updated_book.name, 'The Book that Never Existed')
 
     def test_delete_book(self):
         initial_book_quantity = len(Book.objects.all())
