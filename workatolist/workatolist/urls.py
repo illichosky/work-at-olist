@@ -22,6 +22,5 @@ router.register(r'books', views.BookViewSet, basename='books')
 
 urlpatterns = [
     path('', include(router.urls)),
-    url('/', schema_view.with_ui('swagger')),
     url('docs/', schema_view.with_ui('swagger'))
 ]
