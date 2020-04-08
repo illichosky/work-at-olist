@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from rest_framework import serializers
 
 from books.models import Author, Book
@@ -30,12 +32,14 @@ class BookSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'detail': 'Author does not exists'})
         return value
 
+    @transaction.atomic
     def create(self, validate_data):
         authors = validate_data.pop('authors')
         instance = Book.objects.create(**validate_data)
         instance = self._append_author_objects(authors, instance)
         return instance
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         instance.name = validated_data.get('name', instance.name)
         instance.edition = validated_data.get('edition', instance.edition)
